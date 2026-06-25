@@ -2,6 +2,8 @@
 
 基于 **Vue 3 + Vite + Pinia + Supabase** 的企业工时管理系统。项目覆盖员工周工时填报、提交、两级审批、项目工时报表、组织与用户管理，并通过 Supabase Auth、PostgreSQL、RLS、RPC 与 Edge Function 实现前后端一体化权限控制。
 
+部署在vercel地址[https://vue-supabase-timesheet-app.vercel.app/]
+
 > 显示日期统一为 `DD/MM/YYYY`；数据库日期统一存储为 `YYYY-MM-DD`。
 
 ---
