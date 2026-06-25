@@ -5,6 +5,8 @@ import DayBar from '@/components/DayBar.vue'
 import EntriesTable from '@/components/EntriesTable.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import { useTimesheetStore } from '@/stores/timesheet'
+import { WEEKLY_HOURS_TARGET } from '@/utils/constants'
+
 import {
   addDays,
   formatDisplayDate,
@@ -19,6 +21,10 @@ const timesheetStore = useTimesheetStore()
 
 const pageError = computed(() => timesheetStore.error)
 
+const isCurrentWeek = computed(
+  () => timesheetStore.currentWeekStart >= getWeekStart(new Date()),
+)
+
 const routeWeekStart = computed(() => {
   const queryValue = typeof route.query.week === 'string' ? route.query.week : ''
   const parsed = parseLocalDate(queryValue)
@@ -31,7 +37,7 @@ const selectedDateLabel = computed(() => formatDisplayDate(timesheetStore.select
 const selectedEntries = computed(() => timesheetStore.entriesForSelectedDate)
 const selectedDayTotal = computed(() => timesheetStore.selectedDayTotal)
 const weekTotal = computed(() => timesheetStore.weekTotal)
-const weekTarget = 40
+const weekTarget = WEEKLY_HOURS_TARGET
 const weekProgress = computed(() => Math.min(100, Math.round((weekTotal.value / weekTarget) * 100)))
 const isLocked = computed(() => timesheetStore.isLocked)
 const currentStatus = computed(() => timesheetStore.timesheetRecord?.status || 'draft')
@@ -130,7 +136,10 @@ async function goToPreviousWeek() {
 }
 
 async function goToNextWeek() {
-  await goToWeek(addDays(timesheetStore.currentWeekStart, 7))
+  const nextWeekStart = addDays(timesheetStore.currentWeekStart, 7)
+  const thisWeekStart = getWeekStart(new Date())
+  if (nextWeekStart > thisWeekStart) return
+  await goToWeek(nextWeekStart)
 }
 
 function selectDate(date) {
@@ -247,7 +256,7 @@ watch(
           <button
             class="btn"
             type="button"
-            :disabled="timesheetStore.loading || timesheetStore.saving"
+            :disabled="timesheetStore.loading || timesheetStore.saving ||isCurrentWeek"
             @click="goToNextWeek"
           >
             Next Week ›

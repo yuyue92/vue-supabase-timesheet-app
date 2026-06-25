@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { addDays, formatDisplayDate, getWeekStart, parseLocalDate } from '@/utils/date'
+import { DAILY_HOURS_TARGET } from '@/utils/constants'
 
 const props = defineProps({
   entries: {
@@ -65,7 +66,7 @@ const days = computed(() => {
     const total = Math.round(dayEntries.reduce((sum, entry) => sum + toNumber(entry.hours), 0) * 100) / 100
 
     let state = 'zero'
-    if (total >= 8) {
+    if (total >= DAILY_HOURS_TARGET) {
       state = 'ok'
     } else if (total > 0) {
       state = 'warn'

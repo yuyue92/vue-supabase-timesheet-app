@@ -4,6 +4,8 @@ import { useRoute, useRouter } from 'vue-router'
 import StatusBadge from '@/components/StatusBadge.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useTimesheetStore } from '@/stores/timesheet'
+import { DAILY_HOURS_TARGET } from '@/utils/constants'
+
 import {
   addDays,
   formatDisplayDate,
@@ -37,7 +39,7 @@ const isAlreadySubmitted = computed(() => !['draft', 'rejected'].includes(curren
 const canSubmit = computed(() => Boolean(timesheet.value?.id) && !pageLoading.value && !timesheetStore.saving && !isAlreadySubmitted.value)
 const weekRange = computed(() => formatWeekRange(timesheetStore.currentWeekStart))
 const weeklyHours = computed(() => timesheetStore.weekTotal)
-const workdayTarget = 8
+const workdayTarget = DAILY_HOURS_TARGET
 
 const dailyRows = computed(() => {
   const start = timesheetStore.currentWeekStart

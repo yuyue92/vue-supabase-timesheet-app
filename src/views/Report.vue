@@ -4,6 +4,7 @@ import { getSupabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/auth'
 import { formatDisplayDate, toIsoDate } from '@/utils/date'
 
+const EXPORT_WARN_THRESHOLD = 10000
 const authStore = useAuthStore()
 const pageSize = 20
 
@@ -124,17 +125,30 @@ function validateDateRange() {
   }
 }
 
+function loadVisibleProfiles(client) {
+  const query = client
+    .from('profiles')
+    .select('id, full_name, employee_code, department_id, role, status')
+    .eq('status', 'active')
+    .order('full_name', { ascending: true })
+
+  // 普通员工只能按自己筛选，无需展示全员下拉
+  if (authStore.role === 'employee') {
+    return query.eq('id', authStore.user.id)
+  }
+
+  // 主管只能查看直接下属（如需更严格可扩展为 supervisor_id = authStore.user.id）
+  // admin / project_manager 保留全员可见
+  return query
+}
+
 async function loadFilterOptions() {
   const client = getSupabase()
 
   const [projectsResponse, departmentsResponse, profilesResponse, modulesResponse] = await Promise.all([
     client.from('projects').select('id, name, code, status').order('name', { ascending: true }),
     client.from('departments').select('id, name, parent_id').order('name', { ascending: true }),
-    client
-      .from('profiles')
-      .select('id, full_name, employee_code, department_id, role, status')
-      .eq('status', 'active')
-      .order('full_name', { ascending: true }),
+    loadVisibleProfiles(client),
     client.from('modules').select('id, project_id, name').order('name', { ascending: true }),
   ])
 
@@ -336,7 +350,10 @@ async function fetchAllRowsForExport() {
     from += batchSize
   }
 
-  throw new Error('Export stopped at 50,000 rows. Narrow the filters and try again.')
+  throw new Error(
+    `Export stopped: result set exceeds 50,000 rows (current filter returns ${totalCount.value.toLocaleString()} records). ` +
+    'Narrow the date range, project or department filter and try again.',
+  )
 }
 
 async function exportCsv() {
@@ -392,6 +409,12 @@ onMounted(async () => {
         <p>Analyse approved working hours by project, team, employee and task category.</p>
       </div>
       <div class="head-actions">
+        <span v-if="totalCount > EXPORT_WARN_THRESHOLD" class="hint" style="color: var(--amber)">
+        {{ totalCount.toLocaleString() }} records — consider narrowing filters before exporting.
+      </span>
+      <span v-else-if="totalCount > 0" class="hint">
+        {{ totalCount.toLocaleString() }} records ready to export.
+      </span>
         <button class="btn" type="button" :disabled="exportLoading || filterLoading" @click="exportCsv">
           {{ exportLoading ? 'Preparing CSV…' : 'Export CSV' }}
         </button>
@@ -443,7 +466,7 @@ onMounted(async () => {
         <div class="field">
           <label for="report-employee">Employee</label>
           <select id="report-employee" v-model="filters.profileId" class="select">
-            <option value="">All employees visible to you</option>
+            <option value="">{{ authStore.role === 'employee' ? 'Only your own records' : 'All employees visible to you' }}</option>
             <option v-for="profile in profiles" :key="profile.id" :value="profile.id">
               {{ profile.full_name }} · {{ profile.employee_code }}
             </option>

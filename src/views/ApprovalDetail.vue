@@ -99,10 +99,19 @@ const dailyGroups = computed(() => {
   })
 })
 
-const approvers = computed(() => ({
-  l1Name: 'First-level approver',
-  l2Name: 'Second-level approver',
-}))
+const approvers = computed(() => {
+  const emp = employee.value
+  const l1 = Array.isArray(emp.supervisor)
+    ? emp.supervisor[0]
+    : emp.supervisor
+  const l2 = Array.isArray(emp.second_supervisor)
+    ? emp.second_supervisor[0]
+    : emp.second_supervisor
+  return {
+    l1Name: l1?.full_name || 'First-level approver',
+    l2Name: l2?.full_name || 'Second-level approver',
+  }
+})
 
 function formatHours(value) {
   const number = Number(value)
@@ -175,6 +184,14 @@ async function loadDetail() {
           department:departments!profiles_department_id_fkey (
             id,
             name
+          ),
+          supervisor:profiles!profiles_supervisor_id_fkey (
+            id,
+            full_name
+          ),
+          second_supervisor:profiles!profiles_second_supervisor_id_fkey (
+            id,
+            full_name
           )
         )
       `)

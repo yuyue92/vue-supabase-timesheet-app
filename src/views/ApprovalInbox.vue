@@ -22,6 +22,8 @@ const totalCount = ref(0)
 const currentPage = ref(1)
 const selectedIds = ref([])
 const batchComment = ref('')
+const batchConfirmPending = ref(false)
+
 
 const filters = reactive({
   tab: 'pending',
@@ -262,6 +264,8 @@ async function resetFilters() {
 
 async function setTab(tab) {
   if (filters.tab === tab) return
+  selectedIds.value = []
+  batchConfirmPending.value = false
   filters.tab = tab
   currentPage.value = 1
   await loadRows({ preservePage: false })
@@ -309,6 +313,12 @@ async function approveSelected() {
     return
   }
 
+  if (!batchConfirmPending.value) {
+    batchConfirmPending.value = true
+    return
+  }
+  batchConfirmPending.value = false
+
   batchLoading.value = true
 
   try {
@@ -330,6 +340,10 @@ async function approveSelected() {
   } finally {
     batchLoading.value = false
   }
+}
+
+function cancelBatchConfirm() {
+  batchConfirmPending.value = false
 }
 
 onMounted(async () => {
@@ -505,14 +519,25 @@ onMounted(async () => {
             placeholder="Optional approval comment for all selected..."
             :disabled="!selectedRows.length || batchLoading"
           />
-          <button
-            class="btn primary"
-            type="button"
-            :disabled="!selectedRows.length || batchLoading"
-            @click="approveSelected"
-          >
-            {{ batchLoading ? 'Approving...' : 'Approve Selected' }}
-          </button>
+          <template v-if="!batchConfirmPending">
+            <button
+              class="btn primary"
+              type="button"
+              :disabled="!selectedRows.length || batchLoading"
+              @click="approveSelected"
+            >
+              Approve Selected
+            </button>
+          </template>
+          <template v-else>
+            <span class="hint">Approve {{ selectedRows.length }} timesheet(s)? This cannot be undone.</span>
+            <button class="btn" type="button" :disabled="batchLoading" @click="cancelBatchConfirm">
+              Cancel
+            </button>
+            <button class="btn primary" type="button" :disabled="batchLoading" @click="approveSelected">
+              {{ batchLoading ? 'Approving...' : 'Confirm Approve' }}
+            </button>
+          </template>
         </div>
 
         <div class="pagination" aria-label="Approval inbox pagination">

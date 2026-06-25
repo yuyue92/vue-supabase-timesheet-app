@@ -1,7 +1,5 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
-import flatpickr from 'flatpickr'
-import 'flatpickr/dist/flatpickr.min.css'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getSupabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/auth'
@@ -13,6 +11,7 @@ import {
   isDateInWeek,
   parseLocalDate,
   toIsoDate,
+  addDays,
 } from '@/utils/date'
 
 const route = useRoute()
@@ -20,13 +19,11 @@ const router = useRouter()
 const authStore = useAuthStore()
 const timesheetStore = useTimesheetStore()
 
-const workDateInput = ref(null)
 const pageLoading = ref(true)
 const optionsLoading = ref(false)
 const modulesLoading = ref(false)
 const pageError = ref('')
 const saveError = ref('')
-const datePicker = ref(null)
 const projectOptions = ref([])
 const moduleOptions = ref([])
 
@@ -208,38 +205,15 @@ async function loadModules(projectId = form.value.project_id, resetSelection = t
   }
 }
 
-async function initialiseDatePicker() {
-  await nextTick()
-
-  if (!workDateInput.value) {
-    return
-  }
-
-  datePicker.value?.destroy()
-
-  datePicker.value = flatpickr(workDateInput.value, {
-    altInput: true,
-    altFormat: 'd/m/Y',
-    dateFormat: 'Y-m-d',
-    defaultDate: form.value.work_date || undefined,
-    minDate: timesheetStore.currentWeekStart,
-    maxDate: getWeekEnd(timesheetStore.currentWeekStart),
-    disableMobile: true,
-    onChange(selectedDates, dateString) {
-      form.value.work_date = dateString
-    },
+// 生成本周 7 天的选项列表
+const weekDayOptions = computed(() => {
+  const start = timesheetStore.currentWeekStart
+  if (!start) return []
+  return Array.from({ length: 7 }, (_, i) => {
+    const iso = addDays(start, i)
+    return { value: iso, label: formatDisplayDate(iso) }
   })
-}
-
-function refreshDatePicker() {
-  if (!datePicker.value) {
-    return
-  }
-
-  datePicker.value.set('minDate', timesheetStore.currentWeekStart)
-  datePicker.value.set('maxDate', getWeekEnd(timesheetStore.currentWeekStart))
-  datePicker.value.setDate(form.value.work_date, false)
-}
+})
 
 function applyProjectMembership() {
   const membership = selectedProject.value
@@ -250,6 +224,10 @@ function applyProjectMembership() {
 async function handleProjectChange() {
   pageError.value = ''
   applyProjectMembership()
+
+  if (form.value.project_id && !form.value.role_in_project) {
+    pageError.value = 'Your account is not listed as a member of this project. Contact an administrator to add your project role before recording time.'
+  }
 
   try {
     await loadModules()
@@ -371,8 +349,6 @@ async function initialisePage() {
         : timesheetStore.selectedDate || timesheetStore.currentWeekStart
     }
 
-    await initialiseDatePicker()
-    refreshDatePicker()
   } catch (error) {
     pageError.value = error.message || 'Unable to load the time entry form.'
   } finally {
@@ -388,16 +364,6 @@ watch(
   { immediate: true },
 )
 
-watch(
-  () => form.value.work_date,
-  () => {
-    refreshDatePicker()
-  },
-)
-
-onBeforeUnmount(() => {
-  datePicker.value?.destroy()
-})
 </script>
 
 <template>
@@ -448,7 +414,21 @@ onBeforeUnmount(() => {
       <div class="entry-form-grid">
         <div class="field">
           <label for="work-date">Work Date <span class="required">*</span></label>
-          <input id="work-date" ref="workDateInput" class="input" type="text" placeholder="DD/MM/YYYY" />
+          <select
+            id="work-date"
+            v-model="form.work_date"
+            class="select"
+            :disabled="timesheetStore.saving"
+          >
+            <option value="" disabled>Select a date</option>
+            <option
+              v-for="day in weekDayOptions"
+              :key="day.value"
+              :value="day.value"
+            >
+              {{ day.label }}
+            </option>
+          </select>
         </div>
 
         <div class="field">
@@ -470,12 +450,15 @@ onBeforeUnmount(() => {
         <div class="field">
           <label for="role-in-project">Role <span class="required">*</span></label>
           <select id="role-in-project" v-model="form.role_in_project" class="select" disabled>
-            <option value="">Select a project first</option>
+            <option value="">{{ form.project_id && !form.role_in_project ? 'No role assigned — contact admin' : 'Select a project first' }}</option>
             <option v-if="form.role_in_project" :value="form.role_in_project">
               {{ normaliseLabel(form.role_in_project) }}
             </option>
           </select>
-          <span class="hint">Your project assignment determines the role used for this entry.</span>
+          <span v-if="form.project_id && !form.role_in_project" class="hint" style="color: var(--red)">
+            You have no assigned role for this project. Ask an administrator to add you as a project member.
+          </span>
+          <span v-else class="hint">Your project assignment determines the role used for this entry.</span>
         </div>
 
         <div class="field">

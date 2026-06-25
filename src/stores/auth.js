@@ -43,18 +43,21 @@ export const useAuthStore = defineStore('auth', {
 
     isAdmin: (state) => state.role === 'admin',
 
+    isProjectManager: (state) =>
+      state.role === 'project_manager' || state.role === 'admin',
+
     isSupervisor: (state) =>
       state.role === 'supervisor' || state.role === 'admin',
 
     canApprove() {
-      return this.isSupervisor
+      return this.isSupervisor || this.isProjectManager
     },
 
     canManageOrganisation() {
       return this.isAdmin
     },
 
-    canViewReports: (state) => Boolean(state.role),
+    canViewReports: (state) => ['supervisor', 'project_manager', 'admin'].includes(state.role),
 
     displayName: (state) => state.profile?.full_name || state.user?.email || 'User',
 
@@ -74,6 +77,7 @@ export const useAuthStore = defineStore('auth', {
       this.user = null
       this.profile = null
       this.role = null
+      this.initialized = false
     },
 
     async initialize() {

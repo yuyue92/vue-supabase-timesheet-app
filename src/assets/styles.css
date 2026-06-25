@@ -309,6 +309,60 @@ textarea:focus-visible {
   font-size: 14px;
 }
 
+.password-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-wrap .input {
+  padding-right: 46px;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--muted);
+}
+
+.password-toggle:hover:not(:disabled) {
+  background: var(--soft);
+}
+
+.remember-row {
+  margin-top: 14px;
+}
+
+.remember-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.remember-checkbox {
+  width: 16px;
+  height: 16px;
+  min-height: unset;
+  padding: 0;
+  accent-color: var(--brand);
+  cursor: pointer;
+}
+
 .signin-button {
   width: 100%;
   margin-top: 20px;

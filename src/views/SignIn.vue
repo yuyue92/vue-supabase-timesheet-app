@@ -1,5 +1,6 @@
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+
 import { useRoute, useRouter } from 'vue-router'
 import { hasSupabaseConfig, supabaseConfigError } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/auth'
@@ -14,6 +15,20 @@ const form = reactive({
 })
 
 const pageError = ref('')
+const showPassword = ref(false)
+
+const rememberMe = ref(false)
+
+const STORAGE_KEY = 'ts_remembered_email'
+
+onMounted(() => {
+  const saved = localStorage.getItem(STORAGE_KEY)
+  if (saved) {
+    form.email = saved
+    rememberMe.value = true
+  }
+})
+
 
 const configMessage = computed(() =>
   hasSupabaseConfig ? '' : supabaseConfigError,
@@ -24,6 +39,12 @@ async function handleSubmit() {
 
   try {
     await authStore.signIn(form)
+
+    if (rememberMe.value) {
+      localStorage.setItem(STORAGE_KEY, form.email)
+    } else {
+      localStorage.removeItem(STORAGE_KEY)
+    }
 
     const redirect =
       typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/')
@@ -70,16 +91,38 @@ async function handleSubmit() {
 
       <div class="field field-gap">
         <label for="password">Password</label>
-        <input
-          id="password"
-          v-model="form.password"
-          class="input"
-          type="password"
-          autocomplete="current-password"
-          placeholder="Enter your password"
-          :disabled="authStore.loading || !hasSupabaseConfig"
-          required
-        />
+        <div class="password-wrap">
+          <input
+            id="password"
+            v-model="form.password"
+            class="input"
+            :type="showPassword ? 'text' : 'password'"
+            autocomplete="current-password"
+            placeholder="Enter your password"
+            :disabled="authStore.loading || !hasSupabaseConfig"
+            required
+          />
+          <button
+            class="password-toggle"
+            type="button"
+            :aria-label="showPassword ? 'Hide password' : 'Show password'"
+            :disabled="authStore.loading || !hasSupabaseConfig"
+            @click="showPassword = !showPassword"
+          >
+            {{ showPassword ? '🙈' : '👁️' }}
+          </button>
+        </div>
+      </div>
+
+      <div class="remember-row">
+        <label class="remember-label">
+          <input
+            v-model="rememberMe"
+            type="checkbox"
+            class="remember-checkbox"
+          />
+          Remember my email
+        </label>
       </div>
 
       <button
@@ -92,7 +135,6 @@ async function handleSubmit() {
 
       <p class="footer-note">
         For internal use only · Contact your system administrator if you cannot sign in.
-        <span>[chris.wong@company.test,Password123!]</span>        
       </p>
     </form>
   </div>
