@@ -526,6 +526,7 @@ watch(
       <div class="entry-form-actions">
         <button class="btn" type="button" :disabled="timesheetStore.saving" @click="goBack">Cancel</button>
         <button class="btn primary" type="submit" :disabled="timesheetStore.saving || !projectOptions.length">
+          <span v-if="timesheetStore.saving" class="btn-spinner"></span>
           {{ timesheetStore.saving ? 'Saving…' : isEditing ? 'Save Changes' : 'Save Entry' }}
         </button>
       </div>

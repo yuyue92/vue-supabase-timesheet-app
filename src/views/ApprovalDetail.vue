@@ -7,6 +7,8 @@ import StatusBadge from '@/components/StatusBadge.vue'
 import { getSupabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/auth'
 import { addDays, formatDisplayDate, formatWeekRange } from '@/utils/date'
+import { useToastStore } from '@/stores/toast'
+const toast = useToastStore()
 
 const route = useRoute()
 const router = useRouter()
@@ -101,15 +103,9 @@ const dailyGroups = computed(() => {
 
 const approvers = computed(() => {
   const emp = employee.value
-  const l1 = Array.isArray(emp.supervisor)
-    ? emp.supervisor[0]
-    : emp.supervisor
-  const l2 = Array.isArray(emp.second_supervisor)
-    ? emp.second_supervisor[0]
-    : emp.second_supervisor
   return {
-    l1Name: l1?.full_name || 'First-level approver',
-    l2Name: l2?.full_name || 'Second-level approver',
+    l1Name: emp?._supervisorName || 'First-level approver',
+    l2Name: emp?._secondSupervisorName || 'Second-level approver',
   }
 })
 
@@ -184,14 +180,6 @@ async function loadDetail() {
           department:departments!profiles_department_id_fkey (
             id,
             name
-          ),
-          supervisor:profiles!profiles_supervisor_id_fkey (
-            id,
-            full_name
-          ),
-          second_supervisor:profiles!profiles_second_supervisor_id_fkey (
-            id,
-            full_name
           )
         )
       `)
@@ -207,6 +195,30 @@ async function loadDetail() {
       entries.value = []
       records.value = []
       return
+    }
+
+    // 单独查询主管姓名，避免 profiles 自连接歧义
+    const emp = timesheetData.employee
+    const supervisorIds = [emp?.supervisor_id, emp?.second_supervisor_id].filter(Boolean)
+    let supervisorMap = {}
+
+    if (supervisorIds.length) {
+      const { data: supData } = await client
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', supervisorIds)
+
+      if (supData) {
+        supervisorMap = Object.fromEntries(supData.map((p) => [p.id, p.full_name]))
+      }
+    }
+
+    // 将主管姓名挂到 employee 对象上，供 approvers computed 使用
+    if (timesheetData.employee) {
+      timesheetData.employee._supervisorName =
+        supervisorMap[emp.supervisor_id] || null
+      timesheetData.employee._secondSupervisorName =
+        supervisorMap[emp.second_supervisor_id] || null
     }
 
     const [entriesResult, recordsResult] = await Promise.all([
@@ -310,6 +322,8 @@ async function act(action) {
       : nextStatus === 'approved_l2'
         ? 'Final approval recorded. This timesheet is complete.'
         : 'First-level approval recorded. The timesheet now awaits second-level review.'
+
+    // toast.success(`Timesheet ${action === 'approved' ? 'approved' : 'rejected'} successfully.`)
 
     approvalComment.value = ''
     await loadDetail()
@@ -454,9 +468,11 @@ watch(timesheetId, async () => {
 
           <div class="approval-action-buttons">
             <button class="btn danger" type="button" :disabled="actionLoading" @click="act('rejected')">
+              <span v-if="actionLoading" class="btn-spinner"></span>
               Reject Timesheet
             </button>
             <button class="btn primary" type="button" :disabled="actionLoading" @click="act('approved')">
+              <span v-if="actionLoading" class="btn-spinner"></span>
               {{ actionLoading ? 'Saving...' : currentAction.approveLabel }}
             </button>
           </div>

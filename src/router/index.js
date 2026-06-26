@@ -1,6 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { pinia } from '@/stores/pinia'
+import { useProgressStore } from '@/stores/progress'
+
 
 const SignIn = () => import('@/views/SignIn.vue')
 const MyTimesheet = () => import('@/views/MyTimesheet.vue')
@@ -107,6 +109,8 @@ const router = createRouter({
 })
 
 router.beforeEach(async (to) => {
+  const progressStore = useProgressStore(pinia)
+  progressStore.start()
   const authStore = useAuthStore(pinia)
   await authStore.initialize()
 
@@ -136,6 +140,11 @@ router.beforeEach(async (to) => {
   }
 
   return true
+})
+
+router.afterEach(() => {
+  const progressStore = useProgressStore(pinia)
+  progressStore.finish()
 })
 
 export default router

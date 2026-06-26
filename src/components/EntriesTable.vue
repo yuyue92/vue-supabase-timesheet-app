@@ -97,7 +97,18 @@ function confirmDelete(entry) {
 
 <template>
   <div class="entries-table-wrap">
-    <div v-if="loading" class="table-state" role="status">Loading time entries…</div>
+    <div v-if="loading" class="entries-skeleton" aria-hidden="true">
+      <div v-for="n in 4" :key="n" class="entries-skeleton-row">
+        <span class="skel skel-md"></span>
+        <span class="skel skel-sm"></span>
+        <span class="skel skel-sm"></span>
+        <span class="skel skel-sm"></span>
+        <span class="skel skel-sm"></span>
+        <span class="skel skel-xs"></span>
+        <span class="skel skel-xs"></span>
+        <span class="skel skel-xs"></span>
+      </div>
+    </div>
 
     <div v-else-if="!entries.length" class="table-state table-state--empty">
       {{ emptyMessage }}

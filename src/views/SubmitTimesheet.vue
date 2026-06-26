@@ -330,6 +330,7 @@ watch(routeWeekStart, async () => {
           {{ isAlreadySubmitted ? 'Back to Timesheet' : 'Back to Edit' }}
         </button>
         <button v-if="canSubmit" class="btn primary" type="button" @click="submitWeek">
+          <span v-if="timesheetStore.saving" class="btn-spinner"></span>
           {{ timesheetStore.saving ? 'Submitting…' : 'Submit for Approval' }}
         </button>
       </div>

@@ -273,8 +273,12 @@ watch(
         <span :style="{ width: `${weekProgress}%` }"></span>
       </div>
 
-      <div v-if="timesheetStore.loading" class="timesheet-loading" role="status">
-        Loading weekly timesheet…
+      <div v-if="timesheetStore.loading" class="daybar daybar-skeleton" aria-hidden="true">
+        <div v-for="n in 7" :key="n" class="day skeleton-day">
+          <span class="skel skel-sm"></span>
+          <span class="skel skel-lg"></span>
+          <span class="skel skel-sm"></span>
+        </div>
       </div>
 
       <DayBar

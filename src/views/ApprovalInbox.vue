@@ -448,7 +448,18 @@ onMounted(async () => {
       </div>
 
       <div class="approval-table-wrap">
-        <div v-if="loading || filterLoading" class="table-state" role="status">Loading approval inbox…</div>
+        <div v-if="loading || filterLoading" class="approval-skeleton" aria-hidden="true">
+          <div v-for="n in 5" :key="n" class="approval-skeleton-row">
+            <span class="skel skel-xs"></span>
+            <span class="skel skel-md"></span>
+            <span class="skel skel-sm"></span>
+            <span class="skel skel-md"></span>
+            <span class="skel skel-xs"></span>
+            <span class="skel skel-sm"></span>
+            <span class="skel skel-xs"></span>
+            <span class="skel skel-sm"></span>
+          </div>
+        </div>
 
         <div v-else-if="!rows.length" class="table-state table-state--empty">
           No timesheets match the selected status and filters.

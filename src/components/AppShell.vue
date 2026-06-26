@@ -2,10 +2,14 @@
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useProgressStore } from '@/stores/progress'
+import ToastContainer from '@/components/ToastContainer.vue'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
+const progressStore = useProgressStore()
+
 
 const sidebarOpen = ref(false)
 const shellError = ref('')
@@ -79,6 +83,9 @@ async function handleSignOut() {
 <template>
   <div class="app-shell">
     <header class="topbar app-topbar">
+      <div class="route-progress" :class="{ 'route-progress--active': progressStore.active }">
+        <div class="route-progress-bar" :style="{ width: progressStore.width + '%' }"></div>
+      </div>
       <RouterLink class="brand-link" :to="{ name: 'timesheet' }" aria-label="Go to My Timesheet">
         <span class="logo">TS</span>
         <span class="brand-copy">
@@ -154,4 +161,5 @@ async function handleSignOut() {
       </main>
     </div>
   </div>
+  <ToastContainer />
 </template>
